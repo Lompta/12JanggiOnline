@@ -1,0 +1,226 @@
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="janggi.js"></script>
+</head>
+
+<body>
+  <div id="gameContainer">
+    <div class="janggi-row">
+      <div id="square-0" class="square"><span class="piece player-2 general">G</span></div>
+      <div id="square-1" class="square not-left-edge"><span class="piece player-2 king">K</span></div>
+      <div id="square-2" class="square not-left-edge"><span class="piece player-2 minister">M</span></div>
+      <div class="player-2 reserve">
+        <div class="player-2 reserve-label">Reserve</div>
+        <div class="reserve-contents" id="player-2-reserve">
+        </div>
+      </div>
+    </div>
+    <div class="janggi-row not-top">
+      <div id="square-3" class="square"></div>
+      <div id="square-4" class="square not-left-edge"><span class="piece player-2 man">m</span></div>
+      <div id="square-5" class="square not-left-edge"></div>
+    </div>
+    <div class="janggi-row not-top">
+      <div id="square-6" class="square"></div>
+      <div id="square-7" class="square not-left-edge"><span class="piece player-1 man">m</span></div>
+      <div id="square-8" class="square not-left-edge"></div>
+    </div>
+    <div class="janggi-row not-top">
+      <div id="square-9" class="square"><span class="piece player-1 minister">M</span></div>
+      <div id="square-10" class="square not-left-edge"><span class="piece player-1 king">K</span></div>
+      <div id="square-11" class="square not-left-edge"><span class="piece player-1 general">G</span></div>
+      <div class="player-1 reserve">
+        <div class="player-1 reserve-label">Reserve</div>
+        <div class="reserve-contents" id="player-1-reserve">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-outcome"></div>
+</body>
+
+<script>
+  var janggi;
+
+  function displayGameState(game) {
+    displayBoardState(game);
+    displayCaptureState(game);
+    checkForEndGame(game);
+  }
+
+  function displayBoardState(game) {
+    var pieceDict = ["King", "Minister", "General", "man", "Feudal_Lord"]
+
+    for (var i = 0; i < 12; i++) {
+      if (game.boardState[i].Piece > 0) {
+        $("#square-" + i).html("<span class='piece player-" + game.boardState[i].Player
+                             + " " + pieceDict[game.boardState[i].Piece - 1] + "'>"
+                             + pieceDict[game.boardState[i].Piece - 1].charAt(0) + "</span>");
+      } else {
+        //clear square
+        $("#square-" + i).html("");
+      }
+    }
+  }
+
+  function displayCaptureState(game) {
+    var opponentResult = "";
+    var playerResult = "";
+
+    // handle opponent reserve pieces
+    var opponentMen = game.captureState.Opponent.Men;
+    var opponentGenerals = game.captureState.Opponent.Generals;
+    var opponentMinisters = game.captureState.Opponent.Ministers;
+
+    for (var i = 0; i < opponentMen; i++) {
+      opponentResult += "<span class='reserve-piece player-2 man' pieceTypeId='" + MAN +"'>m</span>";
+    }
+
+    for (var i = 0; i < opponentGenerals; i++) {
+      opponentResult += "<span class='reserve-piece player-2 General' pieceTypeId='" + GENERAL +"'>G</span>";
+    }
+
+    for (var i = 0; i < opponentMinisters; i++) {
+      opponentResult += "<span class='reserve-piece player-2 Minister' pieceTypeId='" + MINISTER +"'>M</span>";
+    }
+
+    // handle player reserve pieces
+    var playerMen = game.captureState.Player.Men;
+    var playerGenerals = game.captureState.Player.Generals;
+    var playerMinisters = game.captureState.Player.Ministers;
+
+    for (var i = 0; i < playerMen; i++) {
+      playerResult += "<span class='reserve-piece player-1 man' pieceTypeId='" + MAN +"'>m</span>";
+    }
+
+    for (var i = 0; i < playerGenerals; i++) {
+      playerResult += "<span class='reserve-piece player-1 General' pieceTypeId='" + GENERAL +"'>G</span>";
+    }
+
+    for (var i = 0; i < playerMinisters; i++) {
+      playerResult += "<span class='reserve-piece player-1 Minister' pieceTypeId='" + MINISTER +"'>M</span>";
+    }
+
+    $("#player-1-reserve").html(playerResult);
+    $("#player-2-reserve").html(opponentResult);
+  }
+
+  function checkForEndGame() {
+    if (janggi.gameWinner === 1) {
+      $("#game-outcome").html("You win!");
+    }
+    if (janggi.gameWinner === 2) {
+      $("#game-outcome").html("You lose...");
+    }
+    if (janggi.gameWinner === 3) {
+      $("#game-outcome").html("A draw.")
+    }
+  }
+
+  function startGame() {
+    janggi = new JanggiGame();
+  }
+
+  function receiveOpponentMove(move) {
+    janggi.processMove(2, move.StartSpace, move.EndSpace);
+    displayGameState(janggi);
+  }
+
+  $(document).ready(function(){
+    var selectedSquare = -6;
+
+    $(".square").on("click", function() {
+      if (janggi.whoseTurn === PLAYER) {
+        var squareNum = $(this).attr("id").split("-")[1];
+        if (selectedSquare === -6) {
+          selectedSquare = squareNum;
+          // TODO - highlight square and possible moves
+        } else {
+          // attempt to process move
+          if(janggi.processMove(1, selectedSquare * 1, squareNum * 1)) {
+            displayGameState(janggi);
+          }
+          selectedSquare = -6;
+        }
+      }
+    });
+
+    $("#player-1-reserve").on('click', '*', function(){
+      if (janggi.whoseTurn === PLAYER) {
+        selectedSquare = $(this).attr("pieceTypeId") * -1;
+      }
+    });
+
+    startGame();
+  });
+</script>
+
+<style>
+  .janggi-row {
+    position: relative;
+  }
+
+  .reserve {
+    position: absolute;
+    display: inline-block;
+    margin-left: 20px;
+    border: 2px solid;
+    width: 200px;
+    height: 70px;
+  }
+
+  .reserve-piece {
+    padding: 3px;
+    border: 1px solid;
+  }
+
+  .reserve-label {
+    text-decoration: underline;
+    color: black !important;
+  }
+
+  .reserve-contents {
+    text-align: center;
+    font-size: 25px;
+    margin-top: 10px;
+  }
+
+  .square {
+    width: 100px;
+    height: 100px;
+    border: 2px solid black;
+    display: inline-block;
+
+    font-size: 30px;
+    text-align: center;
+
+    position: relative;
+  }
+
+  .not-left-edge {
+    margin-left: -6px;
+  }
+
+  .not-top {
+    margin-top: -6px;
+  }
+
+  .piece {
+    position: absolute;
+    left: 35px;
+    top: 30px;
+  }
+
+  .player-1 {
+    color: green;
+  }
+
+  .player-2 {
+    color: red;
+  }
+
+  #game-outcome {
+    font-size: 40px;
+  }
+</style>
