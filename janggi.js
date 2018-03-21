@@ -186,7 +186,7 @@ function getKingMoves(location) {
 }
 
 class JanggiGame {
-  constructor(allowHomeRowPlacement) {
+  constructor(isSecondPlayer, allowHomeRowPlacement) {
     this.boardState = INITIAL_BOARD_STATE.slice();
     this.captureState = Object.assign({}, INITIAL_CAPTURE_STATE);
 
@@ -197,6 +197,9 @@ class JanggiGame {
     this.opponentKingTurnCount = 0;
 
     this.whoseTurn = 1;
+    if(isSecondPlayer) {
+      this.whoseTurn++;
+    }
 
     this.gameWinner = 0;
   }

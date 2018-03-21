@@ -1,5 +1,6 @@
 <head>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="http://cdn.peerjs.com/0.3/peer.js"></script>
   <script src="janggi.js"></script>
 </head>
 
@@ -38,11 +39,101 @@
   </div>
 
   <div id="game-outcome"></div>
+  <div style="display: none;" id="magic-link">Your opponent will be the first person to go to this URL: </div>
 </body>
 
 <script>
+  const API_KEY = "ni337w0knjsgu8fr";
   var janggi;
+  var game;
 
+  // Utilities
+  function getParameterByName(name, url) {
+    // getting query string values - lifted from stackoverflow
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  function reverseString(s) {
+    var result = "";
+    for (var i = 0; i < s.length; i++) {
+      result = s[i] + result;
+    }
+    return result;
+  }
+
+  // Managing the peer connection
+  function getFreshIdPair() {
+    playerId = "";
+    opponentId = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (var i = 0; i < 8; i++) {
+      var nextChar = possible.charAt(Math.floor(Math.random() * possible.length));
+      playerId += nextChar;
+      opponentId = nextChar + opponentId;
+    }
+
+    return {
+      PlayerId: playerId,
+      OpponentId: opponentId
+    };
+  }
+
+  class GameConnection {
+    constructor() {
+      var queryStringId = getParameterByName("id");
+      this.playerId = "";
+      this.opponentId = "";
+
+      if (queryStringId) {
+        this.playerId = queryStringId;
+        this.opponentId = reverseString(queryStringId);
+      } else {
+        var ids = getFreshIdPair();
+        this.playerId = ids.PlayerId;
+        this.opponentId = ids.OpponentId;
+
+        // show url for connection
+        $("#magic-link").html($("#magic-link").html() + window.location.href + "?id=" + this.opponentId);
+        $("#magic-link").show();
+      }
+
+      this.peer = new Peer(this.playerId, {key: API_KEY});
+      this.connection = this.peer.connect(this.opponentId);
+
+      this.connection.on('open', () => {
+        this.setConnectionEvents();
+        startGame();
+      })
+
+      this.peer.on('connection', (conn) => {
+        this.connection = conn;
+        this.setConnectionEvents();
+        startGame(true);
+      });
+    }
+
+    setConnectionEvents() {
+      // we don't need the magic link anymore
+      $("#magic-link").hide();
+
+      this.connection.on('data', (data) => {
+        receiveOpponentMove(data);
+      });
+    }
+  }
+
+  function startConnection() {
+    game = new GameConnection();
+  }
+
+  // Managing the game
   function displayGameState(game) {
     displayBoardState(game);
     displayCaptureState(game);
@@ -118,12 +209,16 @@
     }
   }
 
-  function startGame() {
-    janggi = new JanggiGame();
+  function startGame(isSecondPlayer) {
+    janggi = new JanggiGame(isSecondPlayer);
   }
 
   function receiveOpponentMove(move) {
-    janggi.processMove(2, move.StartSpace, move.EndSpace);
+    if (move.StartSpace > 0) {
+      janggi.processMove(2, 11 - move.StartSpace, 11 - move.EndSpace);
+    } else {
+      janggi.processMove(2, move.StartSpace, 11 - move.EndSpace);
+    }
     displayGameState(janggi);
   }
 
@@ -139,6 +234,12 @@
         } else {
           // attempt to process move
           if(janggi.processMove(1, selectedSquare * 1, squareNum * 1)) {
+            // send the move to opponent
+            var moveObject = {StartSpace: selectedSquare * 1, EndSpace: squareNum * 1};
+            console.log(moveObject);
+            game.connection.send(moveObject);
+
+            // display the move
             displayGameState(janggi);
           }
           selectedSquare = -6;
@@ -152,7 +253,7 @@
       }
     });
 
-    startGame();
+    startConnection();
   });
 </script>
 
