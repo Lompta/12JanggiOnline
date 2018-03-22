@@ -134,6 +134,17 @@
   }
 
   // Managing the game
+  const ARROWS = {
+    TopLeft: "<span class='top-left-arrow'>↖</span>",
+    Top: "<span class='top-arrow'>↑</span>",
+    TopRight: "<span class='top-right-arrow'>↗</span>",
+    Left: "<span class='left-arrow'>←</span>",
+    Right: "<span class='right-arrow'>→</span>",
+    BottomLeft: "<span class='bottom-left-arrow'>↙</span>",
+    Bottom: "<span class='bottom-arrow'>↓</span>",
+    BottomRight: "<span class='bottom-right-arrow'>↘</span>"
+  }
+
   function displayGameState(game) {
     displayBoardState(game);
     displayCaptureState(game);
@@ -145,9 +156,28 @@
 
     for (var i = 0; i < 12; i++) {
       if (game.boardState[i].Piece > 0) {
-        $("#square-" + i).html("<span class='piece player-" + game.boardState[i].Player
+        var piece = "<span class='piece player-" + game.boardState[i].Player
                              + " " + pieceDict[game.boardState[i].Piece - 1] + "'>"
-                             + pieceDict[game.boardState[i].Piece - 1].charAt(0) + "</span>");
+                             + pieceDict[game.boardState[i].Piece - 1].charAt(0) + "</span>";
+
+        if (game.boardState[i].Piece === KING) {
+          piece = piece + ARROWS.TopLeft + ARROWS.Top + ARROWS.TopRight + ARROWS.Left + ARROWS.Right + ARROWS.BottomLeft + ARROWS.Bottom + ARROWS.BottomRight;
+        } else if (game.boardState[i].Piece === GENERAL) {
+          piece = piece + ARROWS.Top + ARROWS.Left + ARROWS.Right + ARROWS.Bottom;
+        } else if (game.boardState[i].Piece === MINISTER) {
+          piece = piece + ARROWS.TopRight + ARROWS.BottomRight + ARROWS.TopLeft + ARROWS.BottomLeft;
+        } else if (game.boardState[i].Piece === MAN && game.boardState[i].Player === PLAYER) {
+          piece = piece + ARROWS.Top;
+        } else if (game.boardState[i].Piece === MAN && game.boardState[i].Player === OPPONENT) {
+          piece = piece + ARROWS.Bottom;
+        } else if (game.boardState[i].Piece === FEUDAL_LORD && game.boardState[i].Player === PLAYER) {
+          piece = piece + ARROWS.TopLeft + ARROWS.Top + ARROWS.TopRight + ARROWS.Left + ARROWS.Right + ARROWS.Bottom;
+        } else if (game.boardState[i].Piece === FEUDAL_LORD && game.boardState[i].Player === Opponent) {
+          piece = piece + ARROWS.Top + ARROWS.Left + ARROWS.Right + ARROWS.BottomLeft + ARROWS.Bottom + ARROWS.BottomRight;
+        }
+
+
+        $("#square-" + i).html(piece);
       } else {
         //clear square
         $("#square-" + i).html("");
@@ -211,6 +241,7 @@
 
   function startGame(isSecondPlayer) {
     janggi = new JanggiGame(isSecondPlayer);
+    displayBoardState(janggi);
   }
 
   function receiveOpponentMove(move) {
@@ -258,6 +289,59 @@
 </script>
 
 <style>
+  .top-left-arrow {
+    position: absolute;
+    left: 0px;
+    font-size: 20px;
+  }
+
+  .top-arrow {
+    position: absolute;
+    left: 41px;
+    font-size: 20px;
+  }
+
+  .top-right-arrow {
+    position: absolute;
+    left: 80px;
+    font-size: 20px;
+  }
+
+  .left-arrow {
+    position: absolute;
+    left: 0px;
+    top: 35px;
+    font-size: 20px;
+  }
+
+  .right-arrow {
+    position: absolute;
+    left: 80px;
+    top: 35px;
+    font-size: 20px;
+  }
+
+  .bottom-left-arrow {
+    position: absolute;
+    font-size: 20px;
+    left: 0px;
+    top: 80px;
+  }
+
+  .bottom-arrow {
+    position: absolute;
+    top: 75px;
+    left: 41px;
+    font-size: 20px;
+  }
+
+  .bottom-right-arrow {
+    position: absolute;
+    top: 80px;
+    left: 80px;
+    font-size: 20px;
+  }
+
   .janggi-row {
     position: relative;
   }
